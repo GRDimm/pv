@@ -1,0 +1,30 @@
+.cell {
+    border: 1px solid black;
+    box-shadow: 2px 1px 14px 2px rgba(0, 0, 0, 0.65);
+    padding: 5px;
+    height: 50vh;
+    overflow-y: auto;
+    width: 100%;
+}
+
+.row{
+    margin:10px 5px 0px 5px;
+}
+
+h4{
+    margin:0;
+    font-size:1em;
+    text-align: center;
+    flex: 1;
+}
+
+.small_input{
+    font-size:0.9em;
+    width:60px;
+    height:25px;
+}
+
+.HR{
+    flex-shrink: 0;
+    margin:5px;
+}
