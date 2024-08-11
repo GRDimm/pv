@@ -1,30 +1,267 @@
 .cell {
     border: 1px solid black;
     box-shadow: 2px 1px 14px 2px rgba(0, 0, 0, 0.65);
+    
     padding: 5px;
-    height: 50vh;
-    overflow-y: auto;
-    width: 100%;
+    height: calc(50vh - 15px);
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.auto-size-graph-container{
+    flex-grow: 1; /* Takes up the remaining space */
+    display: flex;
+    align-items: stretch; /* Ensures the graph div fills the remaining space */
+}
+
+.auto-size-image-container{
+    flex-grow: 1; /* Takes up the remaining space */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden; /* Ensures that anything outside the bounds is hidden */
+}
+
+.input-model{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row-reverse;
+    flex-wrap: wrap;
+    align-content: stretch;
+}
+
+.img-scale{
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Scales the image to fit within the div */
+}
+
+.graph-scale{
+    width:100%;
 }
 
 .row{
-    margin:10px 5px 0px 5px;
+    margin:0;
 }
 
 h4{
     margin:0;
-    font-size:1em;
+    font-size:1.25em;
     text-align: center;
-    flex: 1;
 }
 
-.small_input{
-    font-size:0.9em;
+.small-input{
+    font-size:1em;
     width:60px;
     height:25px;
 }
 
 .HR{
     flex-shrink: 0;
-    margin:5px;
+    margin: 5px 0 5px 0;
+}
+/* Global scrollbar styles */
+body, 
+div, 
+textarea, 
+input, 
+select {
+    scrollbar-width: thin;  /* For Firefox */
+    scrollbar-color: #444 #1c1c1c;  /* Dark thumb and darker track */
+}
+
+/* For WebKit-based browsers (Chrome, Safari, etc.) */
+::-webkit-scrollbar {
+    width: 5px;  /* Thin vertical scrollbar */
+    height: 5px;  /* Thin horizontal scrollbar */
+}
+
+::-webkit-scrollbar-track {
+    background: #1c1c1c;  /* Dark track background */
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #444;  /* Dark thumb */
+    border-radius: 10px;  /* Rounded corners for a more modern look */
+    border: 1px solid #2b2b2b;  /* A slightly lighter border to create contrast */
+    transition: background-color 0.3s ease, border-color 0.3s ease;  /* Smooth transition effects */
+}
+
+/* Hover effect */
+::-webkit-scrollbar-thumb:hover {
+    background-color: #555;  /* Lighten the thumb on hover for a clearer visual effect */
+    border-color: #666;  /* Further lightening the border on hover */
+}
+
+/* Active (click) effect */
+::-webkit-scrollbar-thumb:active {
+    background-color: #777;  /* Even lighter thumb on active */
+    border-color: #888;  /* Further contrast on active */
+}
+
+
+/* Dark mode style for dropdown */
+.dark-mode-dropdown {
+    background-color: #333; /* Dark background */
+    color: #fff; /* Light text color */
+}
+
+.dark-mode-dropdown .Select-control {
+    background-color: #333; /* Dark background for the control */
+    color: #fff; /* Light text color */
+}
+
+.dark-mode-dropdown .Select-menu {
+    background-color: #444; /* Slightly lighter dark background for the dropdown menu */
+    color: #fff; /* Light text color for options */
+}
+
+.dark-mode-dropdown .Select-option {
+    background-color: #444; /* Same as the dropdown menu background */
+    color: #fff; /* Light text color */
+}
+
+.dark-mode-dropdown .Select-option--is-focused {
+    background-color: #555; /* Highlight color for focused option */
+}
+
+.dark-mode-dropdown .Select-option--is-selected {
+    background-color: #666; /* Color for selected option */
+}
+
+.dark-mode-dropdown .Select-single-value {
+    color: #fff; /* Text color for selected value */
+}
+
+.dark-mode-dropdown .Select-input input {
+    color: #fff; /* Text color for input field */
+}
+
+.dark-mode-dropdown .Select-indicator-separator {
+    background-color: #555; /* Separator color */
+}
+
+.dark-mode-dropdown .Select-dropdown-indicator {
+    color: #fff; /* Color of the dropdown arrow */
+}
+
+.has-value.Select--single>.Select-control .Select-value .Select-value-label, .has-value.is-pseudo-focused.Select--single>.Select-control .Select-value .Select-value-label {
+    color:white;
+}
+
+p{
+    color:rgb(232, 232, 232);
+}
+
+/* Dark mode style for number inputs */
+.dark-mode-input {
+    background-color: #333;  /* Dark background */
+    color: #fff;  /* Light text color */
+    border: 1px solid #555;  /* Darker border */
+    border-radius: 4px;  /* Rounded corners */
+    padding: 8px;  /* Padding for a better appearance */
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;  /* Smooth transitions */
+    outline: none;  /* Remove the default outline */
+}
+
+/* Change background and border color on focus */
+.dark-mode-input:focus {
+    background-color: #444;  /* Slightly lighter background on focus */
+    border-color: #888;  /* Lighter border on focus */
+}
+
+/* Hover effect */
+.dark-mode-input:hover {
+    border-color: #777;  /* Slightly lighter border on hover */
+}
+
+/* Styling for the number input spinner buttons (arrows) */
+.dark-mode-input::-webkit-inner-spin-button,
+.dark-mode-input::-webkit-outer-spin-button {
+    background-color: #333;  /* Match background with input field */
+    color: #fff;  /* Light color for the arrows */
+}
+
+/* Firefox-specific styling for number input spinner buttons */
+.dark-mode-input[type="number"]::-moz-inner-spin-button {
+    background-color: #333;  /* Match background with input field */
+    color: #fff;  /* Light color for the arrows */
+}
+
+body{
+    font-family: 'Roboto', sans-serif;
+}
+
+img.clickable-img{
+    cursor: pointer;
+    height:100%;
+    width:auto;
+}
+
+.modal-dialog{
+    max-width:none !important;
+    max-height:none !important;
+}
+
+
+.dark-mode-search-input {
+    background-color: #2c2c2c; /* Dark background */
+    color: #ffffff;            /* Light text color */
+    border: 1px solid #444444; /* Subtle border */
+    padding: 10px;             /* Padding inside the input */
+    border-radius: 5px;        /* Rounded corners */
+    outline: none;             /* Remove default outline */
+    font-size: 14px;           /* Font size */
+    transition: background-color 0.3s, color 0.3s; /* Smooth transition on focus */
+    margin-bottom:5px;
+    width:100%;
+    height:35px;
+}
+
+.dark-mode-search-input::placeholder {
+    color: #aaaaaa; /* Placeholder text color */
+}
+
+.dark-mode-search-input:focus {
+    background-color: #3a3a3a; /* Slightly lighter background on focus */
+    border-color: #555555;     /* Slightly lighter border on focus */
+}
+
+.btn.btn-primary {
+    background-color: #1a1a1a; /* Dark background for the button in dark mode */
+    color: #e0e0e0;            /* Light text color */
+    border: 1px solid #333333; /* Dark border color */
+    display: flex;             /* Use Flexbox */
+    align-items: center;       /* Vertically center content */
+    justify-content: center;   /* Horizontally center content (optional) */
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    padding: 0.375rem 0.75rem; /* Standard padding */
+    height: 25px;              /* Ensure the button stretches to its container's height */
+}
+
+.btn.btn-primary:hover {
+    background-color: #333333; /* Slightly lighter background on hover */
+    color: #ffffff;            /* Bright white text on hover */
+    border-color: #555555;     /* Lighter border on hover */
+}
+
+.btn.btn-primary:active {
+    background-color: #0d0d0d; /* Even darker background when active/clicked */
+    border-color: #444444;     /* Slightly lighter border when active */
+    color: #f1f1f1;            /* Slightly lighter text when active */
+}
+
+.btn.btn-primary:focus {
+    outline: none;             /* Remove default focus outline */
+    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25); /* Subtle white glow on focus */
+}
+
+.history-button{
+    height: 25px;
+    width: 20px;
+    border: 1px solid black;
+    margin-right:10px;
 }

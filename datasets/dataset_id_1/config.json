@@ -1,0 +1,60 @@
+{
+    "name": "creditcard dataset",
+    "display_fields": [
+        "V1",
+        "V2",
+        "Amount",
+        "Time",
+        "Class"
+    ],
+    "max_dropdown_elements":200,
+    "columns_config": {
+        "class": "Class",
+        "id": "row_id",
+        "name":"Name",
+        "prediction_score": "Score",
+        "time": "Time",
+        "quantity": "Amount",
+        "features": [
+            "V1",
+            "V2",
+            "V3",
+            "V4",
+            "V5",
+            "V6",
+            "V7",
+            "V8",
+            "V9",
+            "V10",
+            "V11",
+            "V12",
+            "V13",
+            "V14",
+            "V15",
+            "V16",
+            "V17",
+            "V18",
+            "V19",
+            "V20",
+            "V21",
+            "V22",
+            "V23",
+            "V24",
+            "V25",
+            "V26",
+            "V27",
+            "V28",
+            "Amount"
+        ]
+    },
+    "features_description": {
+        "V1": "V1 description here.",
+        "V2": "V2 description here.",
+        "Amount": "Amount spent in that transaction.",
+        "Time": "Time when the transcation happened.",
+        "V4": "V4"
+    },
+    "id_column": "row_id",
+    "prediction_class_column": "Class",
+    "prediction_score_column": "Score"
+}
