@@ -16,7 +16,6 @@ class DashboardApp:
     def __init__(self, config=None, model=None, dataset=None):
         self.app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG, '/assets/style.css'])
 
-    
     def get_dataset(self, name):
         return pd.read_csv(f'./datasets/{name}/data.csv')
     
@@ -198,7 +197,7 @@ class DashboardApp:
 
     def start(self):
         # Run the Dash app
-        self.app.run_server(debug=True)
+        self.app.run_server(host='0.0.0.0', port=5000, debug=True)
 
 if __name__ == "__main__":
     # Open and load the JSON file

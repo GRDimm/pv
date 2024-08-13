@@ -1,5 +1,0 @@
-{
-    "name":"config 1",
-    "models":["model.pkl"],
-    "datasets":["dataset_1", "dataset_id_1"]
-}
