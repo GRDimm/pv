@@ -7,7 +7,7 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objs as go
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')  # Use Agg backend to avoid the need for a display server
+matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.metrics import pairwise_distances
@@ -36,17 +36,16 @@ class InputTextComponent:
                 dcc.Input(id='input-id', type='text', placeholder="Filter IDs", value="", className="dark-mode-search-input"),
                 dcc.Dropdown(
                     id='operation_id',
-                    #{'label': rid, 'value': rid} for rid in self.data[self.dataset_config["columns_config"]["id"]]][:int(self.dataset_config["max_dropdown_elements"])
-                    options=[],
                     placeholder="Enter or select ID from filtered",
                     searchable=True,
-                    className='dark-mode-dropdown'  # Apply the dark mode class
+                    className='dark-mode-dropdown'
                 )
             ]),
             html.Div(
                 id='operation_details',
                 style={'overflowY': 'auto', 'marginTop': '5px'}
-            )
+            ),
+            dcc.Interval(id='interval', interval=3000, n_intervals=0, max_intervals=1)
         ], className='cell')
 
     def component_callbacks(self, app):
@@ -60,13 +59,11 @@ class InputTextComponent:
                 if operation_id is None:
                     return "Error: Please enter a valid operation ID."
 
-                # Search for the row data based on the operation_id
                 row = self.data[self.data[self.dataset_config["columns_config"]["id"]] == operation_id]
                 
                 if row.empty:
                     return f"Error: Operation ID {operation_id} not found."
                 
-                # Convert row data to dictionary and format it for display
                 row_data = row.iloc[0].drop(self.dataset_config["columns_config"]["id"]).to_dict()
                 details = [html.P(f"{key}: {value}") for key, value in row_data.items() if key in self.dataset_config["display_fields"]]
                 
@@ -76,13 +73,10 @@ class InputTextComponent:
 
         def fetch_options(search_term):
             if not search_term is None:
-                # Assuming 'id_column' is the column in the DataFrame you want to search
                 id_column = self.dataset_config["columns_config"]["id"]
                 
-                # Filter the DataFrame based on the search_term
                 filtered_df = self.data[self.data[id_column].str.contains(search_term, case=False, na=False)]
                 
-                # Extract the relevant column as a list of options
                 options = filtered_df[id_column].head(int(self.dataset_config["max_dropdown_elements"])).tolist()
                 
                 return options
@@ -119,7 +113,7 @@ class FeatureImportanceComponent:
                 dcc.Input(
                     id='num_features_input',
                     type='number',
-                    value=10,  # Default value for the number of features to display
+                    value=10,
                     min=1,
                     step=1,
                     className='small-input dark-mode-input'
@@ -146,7 +140,8 @@ class FeatureImportanceComponent:
         if max_importance != min_importance:
             scaled_importances = (abs_importances - min_importance) / (max_importance - min_importance)
         else:
-            scaled_importances = np.ones_like(abs_importances)  # All importances are equal, scale to 1
+            # All importances are equal, scale to 1
+            scaled_importances = np.ones_like(abs_importances) 
 
         # Restore the original signs of the scaled importances
         scaled_importances = np.sign(feature_importances) * scaled_importances
@@ -157,10 +152,9 @@ class FeatureImportanceComponent:
         """Defines callbacks for updating the feature importance graph based on the input number of features."""
         @app.callback(
             Output("feature_importance_graph", "figure"),
-            [Input('num_features_input', 'value')]
+            [Input('num_features_input', 'value'), Input('interval', 'n_intervals')]
         )
-        def update_graph(num_features):
-            print("UPDQTE")
+        def update_graph(num_features, _):
             if self.check_active():
                 if num_features is None:
                     return dash.no_update
@@ -182,11 +176,9 @@ class FeatureImportanceComponent:
                 # Limit to top `num_features` and reverse order for plotting
                 importance_df = importance_df.head(num_features).iloc[::-1]
 
-                # Create hover text
                 importance_df['hover_text'] = importance_df.apply(
                     lambda row: f'Feature: {row["Feature"]}<br>Importance: {row["Importance"]*100:.2f}%<br>Description: {self.dataset_config["features_description"][row["Feature"]] if row["Feature"] in self.dataset_config["features_description"] else "No description for."}', axis=1)
 
-                # Create Plotly bar chart
                 fig = px.bar(
                     importance_df,
                     x='Importance',
@@ -197,7 +189,6 @@ class FeatureImportanceComponent:
                     template="plotly_dark"
                 )
 
-                # Update layout and appearance
                 fig.update_traces(
                     marker=dict(
                         color=color_positive,
@@ -248,11 +239,9 @@ class ShapExplanationComponent:
         self.dataset_config = dataset_config
 
     def check_active(self):
-        print("Check : SE")
         return not self.model is None and not self.full_data is None and not self.dataset_config is None
 
     def layout(self):
-        print("SC layout")
         return html.Div([
             html.Div([
                 html.H4("SHAP Waterfall Plot", id="waterfall-title"),
@@ -307,9 +296,16 @@ class ShapExplanationComponent:
             else:
                 return False, None
 
-
 class SimilarShapExplanationComponent:
     def __init__(self, model, full_data, dataset_config):
+        self.model = model
+        self.full_data = full_data
+        self.dataset_config = dataset_config
+
+        self.last_clicked_data = None
+        self.history = []
+    
+    def set(self, model, full_data, dataset_config):
         self.model = model
         self.full_data = full_data
         self.dataset_config = dataset_config
@@ -363,7 +359,6 @@ class SimilarShapExplanationComponent:
                 ctx = callback_context
 
                 if not ctx.triggered or len(ctx.triggered) == 0:
-                    # If no input triggered the callback, return default values
                     return None, "No data selected", None
 
                 triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -386,14 +381,14 @@ class SimilarShapExplanationComponent:
                 operation_id = data["points"][0]["customdata"]
 
                 if operation_id is None:
-                    return None, "No data selected", None  # Return None if no ID is selected
+                    return None, "No data selected", None 
                 
                 if not operation_id in self.history:
                     self.history.append(operation_id)
 
                 if len(self.history) > 10:
                     self.history.pop(0)
-                # Generate and return the SHAP waterfall image and updated plot title
+
                 return *shap_waterfall_image(operation_id, num_features, self.model, self.full_data, self.dataset_config), html.Div([html.P(el) for el in self.history])
             else:
                 return None, None, None
@@ -419,7 +414,7 @@ class SimilarShapExplanationComponent:
 
 
         @app.callback(
-            Output("history-modal", "is_open"),  # Output should not be in a list
+            Output("history-modal", "is_open"), 
             [Input("open-modal-button", "n_clicks"), Input("modal-close-button-2", "n_clicks")],
             [State("history-modal", "is_open")]
         )
@@ -428,20 +423,23 @@ class SimilarShapExplanationComponent:
                 ctx = dash.callback_context
 
                 if not ctx.triggered:
-                    return is_open  # Return the current state unchanged if nothing triggered the callback
+                    return is_open 
                 else:
                     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
                     if button_id == "open-modal-button" or button_id == "modal-close-button-2":
-                        return not is_open  # Toggle the modal's visibility
+                        return not is_open 
 
-                return is_open  # Fallback to returning the current state
+                return is_open
             else:
                 return False
 
-
 class OperationTimelineComponent:
     def __init__(self, full_data, dataset_config):
+        self.full_data = full_data
+        self.dataset_config = dataset_config
+    
+    def set(self, full_data, dataset_config):
         self.full_data = full_data
         self.dataset_config = dataset_config
 
@@ -456,7 +454,7 @@ class OperationTimelineComponent:
                 dcc.Input(
                     id='timeline_num_operations',
                     type='number',
-                    value=5,  # Default value for the number of operations to display
+                    value=5,
                     min=1,
                     step=1,
                     className='small-input dark-mode-input'
@@ -482,10 +480,8 @@ class OperationTimelineComponent:
              Input('timeline_num_operations', 'value')]
         )
         def update_timeline(operation_id, timeline_num_operations):
-            print("eertet")
             if self.check_active():
                 if operation_id is None or timeline_num_operations is None:
-                    # Return an empty figure if inputs are not provided
                     fig = go.Figure()
                     fig.update_layout(
                         xaxis=dict(visible=False),
@@ -495,11 +491,9 @@ class OperationTimelineComponent:
                     )
                     return fig
 
-                # Retrieve the history of operations for the given ID
                 history_df = find_history(self.full_data, operation_id, maxlength=timeline_num_operations)
 
                 if history_df.empty:
-                    # Return an empty figure if no operation history is found
                     fig = go.Figure()
                     fig.update_layout(
                         xaxis=dict(visible=False),
@@ -510,25 +504,43 @@ class OperationTimelineComponent:
                     return fig
 
                 fig = go.Figure()
+                
+                color_at_10_percent_rgb = calculate_gradient_color(0.1, color_positive, color_negative)
+                colorscale = [[0, rgba_to_rgb(color_negative)], [0.85, rgba_to_rgb(color_at_10_percent_rgb)], [1, rgba_to_rgb(color_positive)]]
 
-                # Sort operations by time, with the most recent at the top
                 history_df = history_df.sort_values(by=self.dataset_config["columns_config"]["time"], ascending=False).reset_index(drop=True)
 
                 max_amount = history_df[self.dataset_config["columns_config"]["quantity"]].max()
                 min_amount = history_df[self.dataset_config["columns_config"]["quantity"]].min()
-                amount_range = max_amount - min_amount if max_amount != min_amount else 1  # Avoid division by zero
+                amount_range = max_amount - min_amount if max_amount != min_amount else 1 
 
-                max_line_length = 0.8  # Maximum length of horizontal line
-                min_line_length = 0.2  # Minimum length to ensure visibility
+                max_line_length = 0.8 
+                min_line_length = 0.2
 
-                # Dynamic y positions from 0 to 1
                 y_positions = np.linspace(0.9, 0.1, len(history_df))
 
+                marker_x = []
+                marker_y = []
+                marker_sizes = []
+                marker_colors = []
+                marker_shapes = []
+                marker_hovertext = []
+                marker_customdata = []
+
+                line_x = []
+                line_y = []
+
+                text_x = []
+                text_y = []
+                text_labels = []
+
+                hover_display_columns = self.dataset_config["columns_config"]["hover_display"]
+
+                available_columns = history_df.columns
+
                 for idx, (i, row) in enumerate(history_df.iterrows()):
-                    # Determine side: Left (-1) or Right (1)
                     side = -1 if idx % 2 == 0 else 1
 
-                    # Calculate line length based on amount
                     normalized_amount = (row[self.dataset_config["columns_config"]["quantity"]] - min_amount) / amount_range
                     line_length = min_line_length + normalized_amount * (max_line_length - min_line_length)
 
@@ -536,58 +548,70 @@ class OperationTimelineComponent:
                     x_end = side * line_length
                     y = y_positions[idx]
 
-                    # Determine marker shape based on class
                     shape = 'square' if row['Class'] == 1 else 'circle'
 
-                    # Determine marker color based on score
-                    color = calculate_gradient_color(row[self.dataset_config["columns_config"]["prediction_score"]], color_positive, color_negative)
+                    line_x.extend([x_start, x_end, None]) 
+                    line_y.extend([y, y, None])
 
-                    # Add horizontal line
-                    fig.add_trace(go.Scatter(
-                        x=[x_start, x_end],
-                        y=[y, y],
-                        mode='lines',
-                        line=dict(color='white', width=2),
-                        showlegend=False,
-                        hoverinfo='none'
-                    ))
+                    marker_x.append(x_end)
+                    marker_y.append(y)
+                    marker_sizes.append(10 + 20 * (row[self.dataset_config["columns_config"]["quantity"]] / max_amount))
+                    marker_colors.append(row[self.dataset_config["columns_config"]["prediction_score"]])
+                    marker_shapes.append(shape)
+                    marker_hovertext.append(
+                        f'<b>Operation ID:</b> {row[self.dataset_config["columns_config"]["id"]]}<br>'
+                        f'<b>Amount:</b> {row[self.dataset_config["columns_config"]["quantity"]]}<br>'
+                        f'<b>Time:</b> {row[self.dataset_config["columns_config"]["time"]]}<br>'
+                        f'<b>Score:</b> {row[self.dataset_config["columns_config"]["prediction_score"]]}<br>'
+                        f'<b>Class:</b> {row[self.dataset_config["columns_config"]["class"]]}<br>' +
+                        ''.join([f"<b>{col}</b>: {row[col]}<br>" for col in hover_display_columns if col in available_columns]) + 
+                        '<extra></extra>'
+                    )
+                    marker_customdata.append(row[self.dataset_config["columns_config"]["id"]])
 
-                    # Add marker at the end of the horizontal line
-                    fig.add_trace(go.Scatter(
-                        x=[x_end],
-                        y=[y],
-                        mode='markers',
-                        marker=dict(
-                            size=10 + 20*(row[self.dataset_config["columns_config"]["quantity"]]/max_amount),
-                            color=color,
-                            symbol=shape,
-                            line=dict(color='white', width=1)
-                        ),
-                        showlegend=False,
-                        hovertemplate=(
-                            f'<b>Operation ID:</b> {row[self.dataset_config["columns_config"]["id"]]}<br>'
-                            f'<b>Amount:</b> {row[self.dataset_config["columns_config"]["quantity"]]}<br>'
-                            f'<b>Time:</b> {row[self.dataset_config["columns_config"]["time"]]}<br>'
-                            f'<b>Score:</b> {row[self.dataset_config["columns_config"]["prediction_score"]]}<br>'
-                            f'<b>Class:</b> {row[self.dataset_config["columns_config"]["class"]]}<extra></extra>'
-                        ),
-                        customdata=[row[self.dataset_config["columns_config"]["id"]]]
-                    ))
+                    text_x.append(-0.2 if side == 1 else 0.2)
+                    text_y.append(y)
+                    text_labels.append(f"{row['Time']}")
 
-                    # Add date text to the side, offset from the vertical bar
-                    text_x = -0.2 if side == 1 else 0.2  # Offset to move text away from the line
-                    text_align = 'left' if side == 1 else 'right'
+                fig.add_trace(go.Scatter(
+                    x=line_x,
+                    y=line_y,
+                    mode='lines',
+                    line=dict(color='white', width=2),
+                    showlegend=False,
+                    hoverinfo='none'
+                ))
 
-                    fig.add_trace(go.Scatter(
-                        x=[text_x],
-                        y=[y],
-                        mode='text',
-                        text=[f"{row['Time']}"],
-                        textposition='middle left' if side == 1 else 'middle right',
-                        textfont=dict(color='white'),
-                        showlegend=False,
-                        hoverinfo='none'
-                    ))
+                fig.add_trace(go.Scatter(
+                    x=marker_x,
+                    y=marker_y,
+                    mode='markers',
+                    marker=dict(
+                        size=marker_sizes,
+                        color=marker_colors,
+                        colorscale=colorscale,
+                        symbol=marker_shapes,
+                        line=dict(color='white', width=1),
+                        opacity=1,
+                        cmin=0,
+                        cmax=1 
+                    ),
+                    showlegend=False,
+                    hovertemplate=marker_hovertext,
+                    customdata=marker_customdata
+                ))
+
+                fig.add_trace(go.Scatter(
+                    x=text_x,
+                    y=text_y,
+                    mode='text',
+                    text=text_labels,
+                    textposition=['middle left' if x < 0 else 'middle right' for x in text_x],
+                    textfont=dict(color='white'),
+                    showlegend=False,
+                    hoverinfo='none'
+                ))
+
 
                 # Add the vertical timeline
                 fig.add_trace(go.Scatter(
@@ -602,7 +626,7 @@ class OperationTimelineComponent:
                 fig.update_layout(
                     xaxis=dict(
                         visible=False,
-                        range=[-1, 1],  # Ensure enough space on both sides
+                        range=[-1, 1], 
                     ),
                     yaxis=dict(
                         visible=False,
@@ -611,7 +635,7 @@ class OperationTimelineComponent:
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)',
                     margin=dict(l=0, r=0, t=0, b=0),
-                    height=None,  # Use available height
+                    height=None,
                     hovermode='closest',
                     dragmode=False,
                     autosize=True
@@ -630,6 +654,11 @@ class OperationTimelineComponent:
 
 class SimilarInstances3DComponent:
     def __init__(self, model, full_data, dataset_config):
+        self.full_data = full_data
+        self.model = model
+        self.dataset_config = dataset_config
+
+    def set(self, model, full_data, dataset_config):
         self.full_data = full_data
         self.model = model
         self.dataset_config = dataset_config
@@ -656,7 +685,7 @@ class SimilarInstances3DComponent:
             }),
             html.Hr(className='HR'),
             html.Div(
-                dcc.Graph(id="similar_instances_3d_graph", className="graph-scale"),
+                dcc.Graph(id="similar_instances_3d_graph", className="graph-scale", style={"height":"100%"}),
                 className="auto-size-graph-container"
             )
         ], className='cell')
@@ -672,42 +701,39 @@ class SimilarInstances3DComponent:
                 if operation_id is None or num_similar is None:
                     fig = go.Figure()
                     fig.update_layout(
-                        xaxis=dict(visible=False),  # Hide x-axis
-                        yaxis=dict(visible=False),  # Hide y-axis
-                        plot_bgcolor='rgba(0,0,0,0)',  # Set plot background color to transparent
-                        paper_bgcolor='rgba(0,0,0,0)',  # Set paper background color to transparent
+                        xaxis=dict(visible=False), 
+                        yaxis=dict(visible=False), 
+                        plot_bgcolor='rgba(0,0,0,0)',  
+                        paper_bgcolor='rgba(0,0,0,0)',  
                     )
                     return fig
                 
-                # Find similar rows based on the input ID
                 similar_df = find_similar_rows(self.full_data, operation_id, self.dataset_config, num_similar)
 
                 if similar_df.empty:
                     fig = go.Figure()
                     fig.update_layout(
-                        xaxis=dict(visible=False),  # Hide x-axis
-                        yaxis=dict(visible=False),  # Hide y-axis
-                        plot_bgcolor='rgba(0,0,0,0)',  # Set plot background color to transparent
-                        paper_bgcolor='rgba(0,0,0,0)',  # Set paper background color to transparent
+                        xaxis=dict(visible=False),  
+                        yaxis=dict(visible=False),  
+                        plot_bgcolor='rgba(0,0,0,0)',  
+                        paper_bgcolor='rgba(0,0,0,0)',  
                     )
                     return fig
 
-                # Assume the model has feature_importances_ attribute and X has feature names
                 feature_importances = self.model.feature_importances_
 
                 top_features_indices = np.argsort(feature_importances)[-3:][::-1]
                 top_features = self.full_data[self.dataset_config["columns_config"]["features"]].columns[top_features_indices]
 
-                # Extract the data for the 3D plot
                 x_data = similar_df[top_features[0]]
                 y_data = similar_df[top_features[1]]
                 z_data = similar_df[top_features[2]]
 
-                # Create the 3D scatter plot
-                # Convert the colors to a color scale
-                colorscale = [[0, color_negative], [1, color_positive]]
+                color_at_10_percent_rgb = calculate_gradient_color(0.1, color_positive, color_negative)
+                colorscale = [[0, color_negative], [0.85, color_at_10_percent_rgb], [1, color_positive]]
 
-                # Create the figure with the custom color scale
+                hover_display_columns = self.dataset_config["columns_config"]["hover_display"]
+
                 fig = go.Figure(data=[go.Scatter3d(
                     x=x_data,
                     y=y_data,
@@ -715,42 +741,71 @@ class SimilarInstances3DComponent:
                     mode='markers',
                     marker=dict(
                         size=5,
-                        color=similar_df['Score'],  # Color based on Score
-                        colorscale=colorscale,  # Custom color scale from color_negative to color_positive
-                        opacity=0.7,  # Set alpha to 0.7 for all markers
-                        symbol=['square' if int(cl) == 1 else 'circle' for cl in similar_df['Class']],  # Square for Class 1, circle otherwise
-                        colorbar=dict(title="Score")  # Adds a color bar for the gradient
+                        color=similar_df['Score'],  
+                        colorscale=colorscale,
+                        opacity=0.85,  
+                        symbol=['square' if int(cl) == 1 else 'circle' for cl in similar_df['Class']], 
+                        cmin=0,
+                        cmax=1,
+                        colorbar=dict(
+                            title='Score',  
+                            titleside='bottom',
+                        ),
                     ),
-                    text=[f"ID: {id}<br>Prediction/Score: {cl}/{sc}<br>Time: {t}<br>Amount: {amount}<br>{top_features[0]}: {x}<br>{top_features[1]}: {y}<br>{top_features[2]}: {z}"
-                        for id, cl, sc, t, amount, x, y, z in zip(similar_df[self.dataset_config["columns_config"]["id"]], similar_df[self.dataset_config["columns_config"]["class"]], similar_df[self.dataset_config["columns_config"]["prediction_score"]], similar_df[self.dataset_config["columns_config"]["time"]], similar_df[self.dataset_config["columns_config"]["quantity"]], x_data, y_data, z_data)],
+                    text = [
+                        "<br>".join(
+                            [
+                                f"ID: {id}",
+                                f"Prediction/Score: {cl}/{sc}",
+                                f"Time: {t}",
+                                f"Amount: {amount}",
+                                f"{top_features[0]}: {x}",
+                                f"{top_features[1]}: {y}",
+                                f"{top_features[2]}: {z}"
+                            ] + [f"{col}: {similar_df[col].iloc[i]}" for col in hover_display_columns if col in similar_df.columns]
+                        )
+                        for i, (id, cl, sc, t, amount, x, y, z) in enumerate(
+                            zip(
+                                similar_df[self.dataset_config["columns_config"]["id"]],
+                                similar_df[self.dataset_config["columns_config"]["class"]],
+                                similar_df[self.dataset_config["columns_config"]["prediction_score"]],
+                                similar_df[self.dataset_config["columns_config"]["time"]],
+                                similar_df[self.dataset_config["columns_config"]["quantity"]],
+                                x_data,
+                                y_data,
+                                z_data
+                            )
+                        )
+                    ],
                     hoverinfo='text',
                     customdata=similar_df[self.dataset_config["columns_config"]["id"]]
                 )])
 
-                # Set the layout for the 3D plot
                 fig.update_layout(
                     scene=dict(
                         xaxis_title=top_features[0],
                         yaxis_title=top_features[1],
                         zaxis_title=top_features[2],
-                        xaxis=dict(backgroundcolor='rgba(0,0,0,0)'),  # Transparent x-axis background
-                        yaxis=dict(backgroundcolor='rgba(0,0,0,0)'),  # Transparent y-axis background
-                        zaxis=dict(backgroundcolor='rgba(0,0,0,0)')   # Transparent z-axis background
+                        xaxis=dict(backgroundcolor='rgba(0,0,0,0)'),
+                        yaxis=dict(backgroundcolor='rgba(0,0,0,0)'),
+                        zaxis=dict(backgroundcolor='rgba(0,0,0,0)')  
                     ),
-                    margin=dict(l=0, r=0, b=0, t=0),
-                    plot_bgcolor='rgba(0,0,0,0)',  # Set plot background color to transparent
-                    paper_bgcolor='rgba(0,0,0,0)',  # Set paper background color to transparent
-                    template="plotly_dark"
+                    margin=dict(l=0, r=0, b=5, t=0),
+                    plot_bgcolor='rgba(0,0,0,0)',  
+                    paper_bgcolor='rgba(0,0,0,0)',  
+                    template="plotly_dark",
+                    height=None,
+                    autosize=True
                 )
 
                 return fig
             else:
                 fig = go.Figure()
                 fig.update_layout(
-                    xaxis=dict(visible=False),  # Hide x-axis
-                    yaxis=dict(visible=False),  # Hide y-axis
-                    plot_bgcolor='rgba(0,0,0,0)',  # Set plot background color to transparent
-                    paper_bgcolor='rgba(0,0,0,0)',  # Set paper background color to transparent
+                    xaxis=dict(visible=False),  
+                    yaxis=dict(visible=False),  
+                    plot_bgcolor='rgba(0,0,0,0)',  
+                    paper_bgcolor='rgba(0,0,0,0)',  
                 )
                 return fig
 

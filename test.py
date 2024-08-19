@@ -33,26 +33,48 @@ class DashboardApp:
 
     def create_main_menu(self):
         return html.Div([
-            dbc.Row([
+            html.Div([
                 dbc.Col([
-                    dcc.Dropdown(id='dropdown-1', options=[{'label': 'Option 1', 'value': 'opt1'}, {'label': 'Option 2', 'value': 'opt2'}], placeholder="Select option for Dropdown 1"),
-                ], width=4),
-                dbc.Col([
-                    dcc.Dropdown(id='dropdown-2', placeholder="Dropdown 2"),
-                ], width=4),
-                dbc.Col([
-                    dcc.Dropdown(id='dropdown-3', placeholder="Dropdown 3"),
-                ], width=4),
-            ], style={'padding': '20px'}),
-            dbc.Row([
-                dbc.Col([
-                    dbc.Button('Start Dashboard', id='start-button', className="w-100")
-                ], width=12, style={'padding': '20px'}),
-            ])
-        ], id='main-menu', style={'display': 'block'})
+                    html.H4("CONFIG SELECTION", id="main-menu-title"),
+                    dcc.Dropdown(
+                        id='config-dropdown', 
+                        placeholder="Config", 
+                        className='dark-mode-dropdown',
+                        style={'marginBottom': '15px'}
+                    ),
+                    dcc.Dropdown(
+                        id='model-dropdown', 
+                        placeholder="Model", 
+                        className='dark-mode-dropdown',
+                        style={'marginBottom': '15px'}
+                    ),
+                    dcc.Dropdown(
+                        id='dataset-dropdown', 
+                        placeholder="Dataset", 
+                        className='dark-mode-dropdown',
+                        style={'marginBottom': '15px'}
+                    ),
+                    dbc.Button(
+                        'Start Dashboard', 
+                        id='start-button', 
+                        className="w-100"
+                    )
+                ], width=12)
+            ], style={
+                'width': '400px', 
+                'margin': 'auto', 
+                'padding': '20px', 
+                'display': 'flex', 
+                'flexDirection': 'column', 
+                'justifyContent': 'center', 
+                'height': '100vh'
+            })
+        ], id='main-menu')
+
+
+
 
     def create_layout(self):
-        print("Create layout")
         return html.Div([
             self.create_main_menu(),
             html.Div([
@@ -61,31 +83,31 @@ class DashboardApp:
                         dbc.Row([
                             dbc.Col([
                                 self.input_component.layout()
-                            ], width=3, style={'padding': '0 5px 5px 0'}),
+                            ], width=3, className="col-style", style={"padding":"0 4px 4px 0"}),
 
                             dbc.Col([
                                 self.feature_importance.layout()
-                            ], width=4, style={'padding': '0 5px 5px 5px'}),
+                            ], width=4, className="col-style", style={"padding":"0 4px 4px 4px"}),
 
                             dbc.Col([
                                 self.shap_component.layout()
-                            ], width=5, style={'padding': '0 0 5px 5px'}),
+                            ], width=5, className="col-style", style={"padding":"0 0 4px 4px"}),
                         ], className='row', style={'height': '100%', 'boxSizing': 'border-box'})
-                    ], style={'border': 'none', 'margin': '0', 'padding': '0', 'height': '50vh', 'boxSizing': 'border-box'}),
+                    ], className="card-body",style={'border': 'none', 'margin': '0', 'padding': '0', 'boxSizing': 'border-box'}),
                     dbc.CardBody([
                         dbc.Row([
                             dbc.Col([
                                 self.operation_timeline.layout()
-                            ], width=4, style={'padding': '5px 5px 5px 0'}),
+                            ], width=4, className="col-style", style={"padding":"4px 4px 0 0"}),
                             dbc.Col([
                                 self.same_instances.layout()
-                            ], width=4, style={'padding': '5px 5px 0 5px'}),
+                            ], width=4, className="col-style", style={"padding":"4px 4px 0 4px"}),
                             dbc.Col([
                                 self.similar_shap.layout()
-                            ], width=4, style={'padding': '5px 0 5px 5px'})
+                            ], width=4, className="col-style", style={"padding":"4px 0 0 4px"})
                         ], className='row', style={'height': '100%', 'boxSizing': 'border-box'})
-                    ], style={'border': 'none', 'margin': '0', 'padding': '0', 'height': '50vh', 'boxSizing': 'border-box'})
-                ], style={'border': 'none', 'margin': '0', 'padding': '10px', 'height': '100%', 'boxSizing': 'border-box'}),
+                    ], className="card-body", style={'border': 'none', 'margin': '0', 'padding': '0', 'boxSizing': 'border-box'})
+                ], style={'borderRadius':'0', 'border': 'none', 'margin': '0', 'padding': '8px', 'height': '100%', 'boxSizing': 'border-box'}),
             dbc.Modal(
                 [
                     dbc.ModalHeader(
@@ -182,7 +204,8 @@ class DashboardApp:
             ),
             dcc.Store(id='page-load-trigger', data=True)
 
-            ], id='dashboard-layout', style={'display': 'none'})  # Initially hidden
+            ], id='dashboard-layout', style={'display': 'none'})
+        
         ], style={'height': '100vh', 'padding': '0', 'margin': '0', 'borderRadius': '0'})
 
     def get_model(self, model_name):
@@ -196,17 +219,16 @@ class DashboardApp:
         return self.dataset_config, self.model, self.dataset
 
     def setup_main_page(self, config_name, model_name, dataset_name, dummy_setup=False):
-        print("setuppp")
+
         if dummy_setup:
             dataset_config, model, dataset = None, None, None
 
             self.input_component = InputTextComponent(dataset, dataset_config)
             self.feature_importance = FeatureImportanceComponent(model, dataset_config)
             self.shap_component = ShapExplanationComponent(model, dataset, dataset_config)
-
-            self.similar_shap = SimilarShapExplanationComponent(model, dataset, dataset_config)
             self.operation_timeline = OperationTimelineComponent(dataset, dataset_config)
             self.same_instances = SimilarInstances3DComponent(model, dataset, dataset_config)
+            self.similar_shap = SimilarShapExplanationComponent(model, dataset, dataset_config)
 
             self.app.layout = self.create_layout()
             self.setup_callbacks()
@@ -215,26 +237,24 @@ class DashboardApp:
             self.input_component.component_callbacks(self.app)
             self.feature_importance.component_callbacks(self.app)
             self.shap_component.component_callbacks(self.app)
-
-            #self.operation_timeline.component_callbacks(self.app)
-            #self.same_instances.component_callbacks(self.app)
-            #self.similar_shap.component_callbacks(self.app)
+            self.operation_timeline.component_callbacks(self.app)
+            self.same_instances.component_callbacks(self.app)
+            self.similar_shap.component_callbacks(self.app)
         else:
             dataset_config, model, dataset = self.get_setup_data(config_name, model_name, dataset_name)
             self.input_component.set(dataset, dataset_config)
             self.feature_importance.set(model, dataset_config)
             self.shap_component.set(model, dataset, dataset_config)
-
-            
+            self.operation_timeline.set(dataset, dataset_config)
+            self.same_instances.set(model, dataset, dataset_config)
+            self.similar_shap.set(model, dataset, dataset_config)
 
     def setup_callbacks(self):
-        print("setttt")
         @self.app.callback(
-            [Output('dropdown-2', 'options'), Output('dropdown-3', 'options')],
-            [Input('dropdown-1', 'value')]
+            [Output('model-dropdown', 'options'), Output('dataset-dropdown', 'options')],
+            [Input('config-dropdown', 'value')]
         )
         def update_dropdowns(config_id):
-            print("eee")
             if not config_id is None:
                 config = self.get_config(config_id)
                 return config["models"], config["datasets"]
@@ -244,23 +264,31 @@ class DashboardApp:
         @self.app.callback(
             [Output('main-menu', 'style'), Output('dashboard-layout', 'style')],
             [Input('start-button', 'n_clicks')],
-            [State('dropdown-1', 'value'), State('dropdown-2', 'value'), State('dropdown-3', 'value')]
+            [State('config-dropdown', 'value'), State('model-dropdown', 'value'), State('dataset-dropdown', 'value')]
         )
         def display_dashboard(n_clicks, config_name, model_name, dataset_name):
-            print("rrrr")
             if n_clicks and n_clicks > 0:
                 self.setup_main_page(config_name, model_name, dataset_name, dummy_setup=False)
                 return {'display': 'none'}, {'display': 'block'}
             return {'display': 'block'}, {'display': 'none'}
 
         @self.app.callback(
-            Output('dropdown-1', 'options'),
+            Output('config-dropdown', 'options'),
             Input('page-load-trigger', 'data')
         )
         def set_dropdown1_options_on_load(page_load_trigger):
-            print("tttt")
             options =  self.get_config_ids()
             return options        
+
+
+        @self.app.callback(
+            Output('interval', 'n_intervals'),
+            Input('start-button', 'n_clicks')
+        )
+        def start_interval(n_clicks):
+            if n_clicks:
+                return 0  # Reset the interval to trigger
+            return dash.no_update
 
     def start(self):
         # Run the Dash app

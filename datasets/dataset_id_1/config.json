@@ -5,16 +5,17 @@
         "V2",
         "Amount",
         "Time",
-        "Class"
+        "Class",
+        "MerchantType"
     ],
     "max_dropdown_elements":200,
     "columns_config": {
         "class": "Class",
         "id": "row_id",
-        "name":"Name",
         "prediction_score": "Score",
         "time": "Time",
         "quantity": "Amount",
+        "hover_display":["MerchantType", "Name"],
         "features": [
             "V1",
             "V2",
@@ -53,8 +54,5 @@
         "Amount": "Amount spent in that transaction.",
         "Time": "Time when the transcation happened.",
         "V4": "V4"
-    },
-    "id_column": "row_id",
-    "prediction_class_column": "Class",
-    "prediction_score_column": "Score"
+    }
 }
