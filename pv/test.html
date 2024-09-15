@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PDF Image Inserter with Configuration Save/Load</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #image-inputs > div {
+            margin-bottom: 10px;
+        }
+        #image-inputs input {
+            margin-right: 5px;
+        }
+        label {
+            display: inline-block;
+            width: 140px;
+        }
+        h1, h3 {
+            color: #333;
+        }
+        button {
+            margin-top: 10px;
+        }
+        .image-section {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>PDF Image Inserter with Configuration Save/Load</h1>
+    <form id="pdf-form">
+        <label for="pdf-file">Select PDF File:</label>
+        <input type="file" id="pdf-file" accept=".pdf" required><br><br>
+        
+        <div id="image-inputs">
+            <!-- Image input sections will be added here -->
+        </div>
+        
+        <button type="button" id="add-image">Add Image</button><br><br>
+        <button type="submit">Insert Images and Download PDF</button>
+    </form>
+    
+    <h2>Configuration</h2>
+    <button type="button" id="save-config">Save Config</button>
+    <button type="button" id="load-config">Load Config</button>
+    <input type="file" id="config-file" accept=".json" style="display: none;">
+    
+    <!-- Include pdf-lib library -->
+    <script src="pdf-lib.min.js"></script>
+    <!-- Include FileSaver.js library -->
+    <script src="FileSaver.min.js"></script>
+    <!-- Include your custom script -->
+    <script>
+        document.getElementById('add-image').addEventListener('click', () => addImageInput());
+        document.getElementById('pdf-form').addEventListener('submit', handleFormSubmit);
+        document.getElementById('save-config').addEventListener('click', saveConfig);
+        document.getElementById('load-config').addEventListener('click', () => document.getElementById('config-file').click());
+        document.getElementById('config-file').addEventListener('change', loadConfig);
+
+        // Initialize with one image input section
+        addImageInput();
+
+        function addImageInput(config = null) {
+            const imageInputs = document.getElementById('image-inputs');
+            const imageCount = imageInputs.querySelectorAll('.image-section').length + 1;
+
+            const div = document.createElement('div');
+            div.className = 'image-section';
+            div.innerHTML = `
+                <h3>Image ${imageCount}:</h3>
+                <label>Select Image:</label>
+                <input type="file" class="image-file" accept="image/*" ${config ? '' : 'required'}><br>
+                <label>Pages (comma-separated):</label>
+                <input type="text" class="pages" placeholder="e.g., 1,3,5" required><br>
+                <label>X Coordinate:</label>
+                <input type="number" class="x-coordinate" required>
+                <label>Y Coordinate:</label>
+                <input type="number" class="y-coordinate" required><br>
+                <label>Width:</label>
+                <input type="number" class="width" required>
+                <label>Height:</label>
+                <input type="number" class="height" required>
+                <button type="button" class="remove-image">Remove</button>
+            `;
+            imageInputs.appendChild(div);
+
+            if (config) {
+                // Populate fields with config data
+                div.querySelector('.pages').value = config.pages;
+                div.querySelector('.x-coordinate').value = config.x;
+                div.querySelector('.y-coordinate').value = config.y;
+                div.querySelector('.width').value = config.width;
+                div.querySelector('.height').value = config.height;
+
+                // Create a hidden input to store the image data
+                const imageDataInput = document.createElement('input');
+                imageDataInput.type = 'hidden';
+                imageDataInput.className = 'image-data';
+                imageDataInput.value = config.imageData;
+                div.appendChild(imageDataInput);
+
+                // Display a placeholder for the image file
+                const imageFileLabel = document.createElement('span');
+                imageFileLabel.textContent = 'Image loaded from configuration.';
+                div.insertBefore(imageFileLabel, div.querySelector('.image-file').nextSibling);
+            }
+
+            // Add event listener to remove button
+            div.querySelector('.remove-image').addEventListener('click', () => {
+                div.remove();
+                updateImageHeaders();
+            });
+        }
+
+        function updateImageHeaders() {
+            const imageSections = document.querySelectorAll('#image-inputs .image-section');
+            imageSections.forEach((section, index) => {
+                section.querySelector('h3').textContent = `Image ${index + 1}:`;
+            });
+        }
+
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const pdfFileInput = document.getElementById('pdf-file');
+            const pdfFile = pdfFileInput.files[0];
+            if (!pdfFile) {
+                alert('Please select a PDF file.');
+                return;
+            }
+
+            // Read the PDF file
+            const pdfBytes = await readFileAsArrayBuffer(pdfFile);
+            const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+
+            // Process each image
+            const imageSections = document.querySelectorAll('#image-inputs .image-section');
+            for (const section of imageSections) {
+                const imageFileInput = section.querySelector('.image-file');
+                const imageDataInput = section.querySelector('.image-data');
+                const pagesInput = section.querySelector('.pages');
+                const xInput = section.querySelector('.x-coordinate');
+                const yInput = section.querySelector('.y-coordinate');
+                const widthInput = section.querySelector('.width');
+                const heightInput = section.querySelector('.height');
+
+                let imageBytes;
+                let imageExtension;
+
+                if (imageDataInput) {
+                    // Load image data from configuration
+                    const imageDataUrl = imageDataInput.value;
+                    const imageInfo = await fetchDataUrlAsUint8Array(imageDataUrl);
+                    imageBytes = imageInfo.bytes;
+                    imageExtension = imageInfo.extension;
+                } else {
+                    const imageFile = imageFileInput.files[0];
+                    if (!imageFile) {
+                        alert('Please select an image file for each image input.');
+                        return;
+                    }
+
+                    // Read the image file
+                    imageBytes = await readFileAsArrayBuffer(imageFile);
+                    imageExtension = imageFile.name.split('.').pop().toLowerCase();
+                }
+
+                let pdfImage;
+                if (['jpg', 'jpeg'].includes(imageExtension)) {
+                    pdfImage = await pdfDoc.embedJpg(imageBytes);
+                } else if (['png'].includes(imageExtension)) {
+                    pdfImage = await pdfDoc.embedPng(imageBytes);
+                } else {
+                    alert('Unsupported image format. Only JPG and PNG are supported.');
+                    return;
+                }
+
+                const pagesText = pagesInput.value;
+                const pageNumbers = pagesText.split(',').map(num => parseInt(num.trim()) - 1);
+
+                const x = parseFloat(xInput.value);
+                const y = parseFloat(yInput.value);
+                const width = parseFloat(widthInput.value);
+                const height = parseFloat(heightInput.value);
+
+                for (const pageIndex of pageNumbers) {
+                    if (pageIndex < 0 || pageIndex >= pdfDoc.getPageCount()) {
+                        alert(`Invalid page number: ${pageIndex + 1}`);
+                        continue;
+                    }
+                    const page = pdfDoc.getPage(pageIndex);
+                    const { width: pageWidth, height: pageHeight } = page.getSize();
+
+                    // Adjust Y coordinate if needed
+                    // const adjustedY = pageHeight - y - height; // Uncomment if you want to position from top
+
+                    page.drawImage(pdfImage, {
+                        x: x,
+                        y: y, // Use adjustedY if positioning from top
+                        width: width,
+                        height: height,
+                    });
+                }
+            }
+
+            // Serialize the PDFDocument to bytes (a Uint8Array)
+            const pdfBytesModified = await pdfDoc.save();
+
+            // Download the modified PDF
+            const blob = new Blob([pdfBytesModified], { type: 'application/pdf' });
+            saveAs(blob, 'modified.pdf');
+        }
+
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(new Uint8Array(reader.result));
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function saveConfig() {
+            const config = [];
+            const imageSections = document.querySelectorAll('#image-inputs .image-section');
+            const promises = [];
+
+            imageSections.forEach((section, index) => {
+                const imageFileInput = section.querySelector('.image-file');
+                const imageDataInput = section.querySelector('.image-data');
+                const pagesInput = section.querySelector('.pages');
+                const xInput = section.querySelector('.x-coordinate');
+                const yInput = section.querySelector('.y-coordinate');
+                const widthInput = section.querySelector('.width');
+                const heightInput = section.querySelector('.height');
+
+                const imageConfig = {
+                    pages: pagesInput.value,
+                    x: xInput.value,
+                    y: yInput.value,
+                    width: widthInput.value,
+                    height: heightInput.value,
+                };
+
+                if (imageDataInput) {
+                    // Image data already exists
+                    imageConfig.imageData = imageDataInput.value;
+                } else {
+                    const imageFile = imageFileInput.files[0];
+                    if (!imageFile) {
+                        alert(`Please select an image file for image input ${index + 1}.`);
+                        return;
+                    }
+                    // Read image file as Data URL
+                    const promise = readFileAsDataURL(imageFile).then(dataUrl => {
+                        imageConfig.imageData = dataUrl;
+                    });
+                    promises.push(promise);
+                }
+
+                config.push(imageConfig);
+            });
+
+            Promise.all(promises).then(() => {
+                const configBlob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+                saveAs(configBlob, 'config.json');
+            });
+        }
+
+        function loadConfig(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                try {
+                    const config = JSON.parse(content);
+                    // Clear existing image inputs
+                    document.getElementById('image-inputs').innerHTML = '';
+                    // Add image inputs from config
+                    config.forEach(imageConfig => {
+                        addImageInput(imageConfig);
+                    });
+                } catch (error) {
+                    alert('Invalid configuration file.');
+                }
+            };
+            reader.readAsText(file);
+            // Reset the input value to allow re-uploading the same file
+            event.target.value = '';
+        }
+
+        function fetchDataUrlAsUint8Array(dataUrl) {
+            return fetch(dataUrl)
+                .then(response => response.arrayBuffer())
+                .then(buffer => {
+                    const byteArray = new Uint8Array(buffer);
+                    // Extract the extension from the Data URL
+                    const matches = dataUrl.match(/^data:image\/(png|jpeg);base64,/);
+                    const extension = matches ? (matches[1] === 'jpeg' ? 'jpg' : matches[1]) : null;
+                    return { bytes: byteArray, extension };
+                });
+        }
+    </script>
+</body>
+</html>
